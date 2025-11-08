@@ -21,11 +21,31 @@ function Testimonial({ quote, author, role }) {
 function LeadForm() {
   const [form, setForm] = useState({ name: '', brand: '', contact: '' });
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-  const onSubmit = (e) => {
+
+  const onSubmit = async (e) => {
     e.preventDefault();
-    setSent(true);
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/leads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.detail || 'Submission failed');
+      }
+      setSent(true);
+    } catch (err) {
+      setError(err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -56,8 +76,13 @@ function LeadForm() {
             className="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-3 text-white placeholder-white/50 outline-none focus:border-red-500"
             required
           />
-          <button type="submit" className="md:col-span-3 inline-flex items-center justify-center rounded-lg bg-red-600 px-5 py-3 font-semibold text-white shadow-lg shadow-red-600/30 transition hover:-translate-y-0.5 hover:bg-red-500">
-            Let’s build your next growth story
+          {error && (
+            <div className="md:col-span-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
+              {error}
+            </div>
+          )}
+          <button type="submit" disabled={loading} className="md:col-span-3 inline-flex items-center justify-center rounded-lg bg-red-600 px-5 py-3 font-semibold text-white shadow-lg shadow-red-600/30 transition hover:-translate-y-0.5 hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60">
+            {loading ? 'Submitting…' : 'Let’s build your next growth story'}
           </button>
         </form>
       ) : (
